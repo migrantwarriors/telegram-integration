@@ -1,0 +1,27 @@
+{
+  "name": "telegram-integration",
+  "version": "0.0.1",
+  "description": "A simple Telegram Node app built on Express, instantly up and running.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "@telegraf/session": "^1.0.0",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "request": "^2.88.2",
+    "telegraf": "^3.38.0"
+  },
+  "engines": {
+    "node": "12.x"
+  },
+  "repository": {
+    "url": "https://github.com/migrantwarriors/telegram-integration"
+  },
+  "license": "MIT",
+  "keywords": [
+    "node",
+    "express"
+  ]
+}
