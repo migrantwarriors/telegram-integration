@@ -7,33 +7,30 @@ const express = require("express");
 const app = express();
 const dotenv = require('dotenv');
 dotenv.config();
+const CONSTANTS = require('./const.js');
 const session = require("telegraf/session");
 const Telegraf = require("telegraf");
 const bot = new Telegraf(process.env.AUTH_TOKEN);
 const skillArr = ["Carpentor", "Mason", "Tailor", "Beautician", "Electrician", "Construction Labour", "Fitter", "Painter", "Plumber"];
 const fetch = require('node-fetch');
 const Markup = require('telegraf/markup');
-
+const request = require('request'); 
 
 bot.use(session());
 bot.use(Telegraf.log());
-bot.start(ctx =>
-    ctx.replyWithHTML(
-        "Please provide your details for employment in the given format - <b>name, phonenumber, aadharnumber, pincode, address</b>. \n\nFor eg. <b>garishma nagpal, 9999999999, 123456789012, 201010, Indirapuram Ghaziabad</b>"
-    )
-);
+
+bot.start(ctx => {
+    ctx.replyWithHTML(CONSTANTS.ENTERDETAILS);
+});
+
 bot.hears("Multi-Skill/Others", ctx => {
     ctx.session.skillTemp = ctx.message.text;
-    ctx.replyWithHTML(
-        "Please provide your skill. If multiple, then provide them comma separated."
-    );
+    ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILL);
 });
 
 bot.on("photo", ctx => {
     console.log("Image file_id:" + ctx.message.photo[0].file_id);
-    ctx.replyWithHTML(
-        "Wow received image"
-    );
+    ctx.replyWithHTML("Testing Image");
 });
 
 bot.on("text", ctx => {
@@ -51,21 +48,44 @@ bot.on("text", ctx => {
             ctx.session.skill
         );
         //dbsaveapicall//setflag
-        return ctx.replyWithHTML(
-            "Thank You for providing your details. We will contact you shortly. You may check <b>http://migrantwarriors.com</b> for more updates."
-        );
+        let skillArrDb = (ctx.session.skill).split(CONSTANTS.COMMASTRING);
+        let dbApiUrl = CONSTANTS.DBAPICALL;
+
+        let dbApiBody = {
+            "Name": ctx.session.name,
+            "AadharNumber": Number(ctx.session.aadhar),
+            "Phone": Number(ctx.session.phone),
+            "Address": ctx.session.address,
+            "Pincode": Number(ctx.session.pincode),
+            "Skill": skillArrDb
+        };
+
+        request.post(CONSTANTS.DBAPICALL, {
+            json: dbApiBody
+          }, (error, res, body) => {
+            if (error) {
+              console.error(error);
+              return ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
+            }
+            console.log("DB save response" +body);
+            if (body) {
+                return ctx.replyWithHTML(CONSTANTS.SUCCESSMESSAGE);
+            } else {
+                return ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
+            }
+          }); 
+
+        return;
     }
 
     if (ctx.session.name && ctx.session.skill) {
-        return ctx.replyWithHTML(
-            "We have already got your details. We will contact you shortly. You may check <b>http://migrantwarriors.com</b> for more updates."
-        );
+        return ctx.replyWithHTML(CONSTANTS.ALREADYMESSAGE);
     }
 
     let errMsg = checkForValidations(ctx);
     console.log(ctx.message.text);
-    if (errMsg == "") {
-        return ctx.replyWithHTML("Thank You for providing your details. \n\nPlease select your <b>skills:</b> \n1. Carpenter\n2. Mason\n3. Plumber\n4. Tailor\n5. Beautician\n6. Painter\n7. Electrician\n8. Fitter\n9. Construction Labour\n10. Multi-Skill/Others \n\n<b>If not given in the list or more than one skill select Multi-Skill/Others.</b>",
+    if (errMsg == CONSTANTS.EMPTYSTRING) {
+        return ctx.replyWithHTML(CONSTANTS.ENTERDETAILSSUCCESS,
             Markup.keyboard([
                 ["Carpentor", "Mason", "Plumber"],
                 ["Tailor", "Beautician", "Painter"],
@@ -75,9 +95,7 @@ bot.on("text", ctx => {
                 .oneTime()
                 .resize().extra());
     } else {
-        return ctx.replyWithHTML(
-            errMsg + "\n<b>Please enter your details again in correct format as given. </b> \n\nFor eg. <b>garishma nagpal, 9999999999, 123456789012, 201010, Indirapuram Ghaziabad</b>"
-        );
+        return ctx.replyWithHTML(errMsg + CONSTANTS.ENTERDETAILSFAILURE);
     }
 });
 
@@ -89,13 +107,13 @@ const listener = app.listen(process.env.PORT, () => {
 });
 
 function checkForValidations(ctx) {
-    let errText = "";
+    let errText = CONSTANTS.EMPTYSTRING;
     let userText = ctx.message.text;
     if (typeof userText !== "undefined" || userText !== undefined) {
-        var arr = userText.split(",");
+        var arr = userText.split(CONSTANTS.COMMASTRING);
 
         if (arr.length < 5) {
-            errText += "Invalid input. All five values are not given.";
+            errText += CONSTANTS.ENTERDETAILSFAILUREMSG;
             console.log(errText);
         } else {
             let name = arr[0].trim();
@@ -105,25 +123,22 @@ function checkForValidations(ctx) {
             let address = userText.substring(nthIndex(userText, ",", 4) + 1).trim();
             console.log("Address: " + address);
             
-            if (!name.match(/^[A-Za-z]+$/)) {
-                errText += "<b>Name</b> is invalid. It should be all letters.";
+            if (!name.match(/^[A-Za-z ]+$/)) {
+                errText += CONSTANTS.NAMEERRORMSG;
             }
             
             if (!phone.match(/^\d{10}$/)) {
-                errText +=
-                    "\n<b>Phone number</b> is invalid. It should be 10 in length and all should be numbers.";
+                errText += CONSTANTS.PHONEERRORMSG;
             }
-            var aadharApiCallFlag = true;
             
             if (!aadhar.match(/^\d{12}$/)) {
-                errText +=
-                    "\n<b>Aadhar number</b> is invalid. It should be 12 in length and all should be numbers.";
+                errText += CONSTANTS.AADHARERRORMSG1;
             } else {
                 //aadharapicall
                 
-                var aadharApiUrl = `https://aadhaarnumber-verify.p.rapidapi.com/Uidverify?uidnumber=${aadhar}&clientid=111&method=uidverify&txn_id=123456`;
+                let aadharApiUrl = `https://aadhaarnumber-verify.p.rapidapi.com/Uidverify?uidnumber=${aadhar}&clientid=111&method=uidverify&txn_id=123456`;
 
-                var headers = {
+                let headers = {
                     "Content-Type": "application/x-www-form-urlencoded",
                     "X-RapidAPI-Host": "aadhaarnumber-verify.p.rapidapi.com",
                     "X-RapidAPI-Key":
@@ -146,16 +161,14 @@ function checkForValidations(ctx) {
             }
             
             if (!pincode.match(/^\d{6}$/)) {
-                errText +=
-                    "\n<b>Pincode</b> is invalid. It should be 6 in length and all should be numbers.";
+                errText += CONSTANTS.PINCODEERRORMSG;
             }
             
             if (!address.match(/^[A-Za-z \d]+$/)) {
-                errText +=
-                    "\n<b>Address</b> is invalid. It should not include any special character.";
+                errText += CONSTANTS.ADDRESSERRORMSG;
             }
             
-            if (errText == "") {
+            if (errText == CONSTANTS.EMPTYSTRING) {
                 ctx.session.name = name;
                 ctx.session.phone = phone;
                 ctx.session.aadhar = aadhar;
@@ -168,7 +181,7 @@ function checkForValidations(ctx) {
 }
 
 function nthIndex(str, pat, n) {
-    var L = str.length, i = -1;
+    let L = str.length, i = -1;
     while (n-- && i++ < L) {
         i = str.indexOf(pat, i);
         if (i < 0) break;
