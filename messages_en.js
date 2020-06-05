@@ -37,5 +37,7 @@ module.exports = Object.freeze({
                 ["Electroplating", "Fish processing", "Gem cutting"],
                 ["Matches manufacture", "Mineral and Mines work"],
                 ["Scavenging", "Tobacco processing","Stone crushing"]
-            ]
+            ],
+    EMPTYSKILLSERRORMSG: 'Skills should not be empty.',
+    WRONGPINCODEMESSAGE: 'There is an error in saving the details. Pincode entered is invalid. Please provide your details again by clicking /start.'
 });

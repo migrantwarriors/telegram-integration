@@ -6,10 +6,14 @@ let CONSTANTS = require('./messages_en.js');
 const session = require("telegraf/session");
 const Telegraf = require("telegraf");
 const bot = new Telegraf(process.env.AUTH_TOKEN);
-const genderMap=new Map();
-genderMap.set("M", "Male");
-genderMap.set("F", "Female");
-genderMap.set("T","Transgender");
+const genderMapEn=new Map();
+genderMapEn.set("M", "Male");
+genderMapEn.set("F", "Female");
+genderMapEn.set("T","Transgender");
+const genderMapHi=new Map();
+genderMapHi.set("पु", "Male");
+genderMapHi.set("म", "Female");
+genderMapHi.set("प","Transgender");
 const fetch = require('node-fetch');
 const Markup = require('telegraf/markup');
 const request = require('request');
@@ -20,28 +24,32 @@ bot.use(Telegraf.log());
 
 bot.start(ctx => {
     resetSession(ctx);
-    ctx.replyWithHTML(CONSTANTS.LANGUAGECHOOSEMSG, Markup.keyboard([["हिन्दी", "English"]]).oneTime().resize().extra());
+    return ctx.replyWithHTML(CONSTANTS.LANGUAGECHOOSEMSG, Markup.keyboard([["हिन्दी", "English"]]).oneTime().resize().extra());
 });
+
+bot.catch((err, ctx) => {
+    console.log(`Ooops, encountered an error for ${ctx.updateType}`, err);
+  })
 
 bot.hears("हिन्दी", ctx => {
     ctx.session.language = "hi";
     CONSTANTS = require('./messages_hi.js');
-    ctx.replyWithHTML(CONSTANTS.ENTERDETAILS);
+    return ctx.replyWithHTML(CONSTANTS.ENTERDETAILS);
 });
 bot.hears("English", ctx => {
     ctx.session.language = "en";
     CONSTANTS = require('./messages_en.js');
-    ctx.replyWithHTML(CONSTANTS.ENTERDETAILS);
+    return ctx.replyWithHTML(CONSTANTS.ENTERDETAILS);
 });
 
 bot.hears("बहु-कौशल/अन्य", ctx => {
     ctx.session.skillTemp = ctx.message.text;
-    ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILLMSG);
+    return ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILLMSG);
 });
 
 bot.hears("Multi-Skill/Others", ctx => {
     ctx.session.skillTemp = ctx.message.text;
-    ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILLMSG);
+    return ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILLMSG);
 });
 //For OCR POC
 /*bot.on("photo", ctx => {
@@ -55,6 +63,8 @@ bot.on("text", ctx => {
       let skillArrDb = (ctx.message.text).split(CONSTANTS.COMMASTRING);
       if(skillArrDb.length>3){
         return ctx.replyWithHTML(CONSTANTS.MAXSKILLSERRORMSG);
+      } else if(skillArrDb.filter(item => item.trim() !== "").length !==skillArrDb.length){
+        return ctx.replyWithHTML(CONSTANTS.EMPTYSKILLSERRORMSG);
       }
         
         ctx.session.skill = ctx.message.text;
@@ -150,9 +160,9 @@ function checkForValidations(ctx) {
                 ctx.session.pincode = pincode;
                 ctx.session.address = address;
                 if(ctx.session.language==="hi"){
-                ctx.session.gender = gender;
+                ctx.session.gender = genderMapHi.get(gender);
                 }else{
-                ctx.session.gender = genderMap.get(gender.toUpperCase());
+                ctx.session.gender = genderMapEn.get(gender.toUpperCase());
                 }
             }
         }
@@ -212,6 +222,9 @@ function dbSaveApiCall(ctx,skillArrDb){
               break;
               case 404:
               resMsg= ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
+              break;
+              case 405:
+              resMsg= ctx.replyWithHTML(CONSTANTS.WRONGPINCODEMESSAGE);
               break;
             default:
               resMsg= ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
