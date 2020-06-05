@@ -37,6 +37,5 @@ module.exports = Object.freeze({
                 ["Electroplating", "Fish processing", "Gem cutting"],
                 ["Matches manufacture", "Mineral and Mines work"],
                 ["Scavenging", "Tobacco processing","Stone crushing"]
-            ],
-  MULTISKILLOTHERS:'Multi-Skill/Others'
+            ]
 });

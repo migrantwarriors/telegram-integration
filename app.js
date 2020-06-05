@@ -19,6 +19,7 @@ bot.use(session());
 bot.use(Telegraf.log());
 
 bot.start(ctx => {
+    resetSession(ctx);
     ctx.replyWithHTML(CONSTANTS.LANGUAGECHOOSEMSG, Markup.keyboard([["हिन्दी", "English"]]).oneTime().resize().extra());
 });
 
@@ -33,7 +34,7 @@ bot.hears("English", ctx => {
     ctx.replyWithHTML(CONSTANTS.ENTERDETAILS);
 });
 
-bot.hears("मल्टी-स्किल/अन्य", ctx => {
+bot.hears("बहु-कौशल/अन्य", ctx => {
     ctx.session.skillTemp = ctx.message.text;
     ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILLMSG);
 });
@@ -49,9 +50,6 @@ bot.hears("Multi-Skill/Others", ctx => {
 });*/
 
 bot.on("text", ctx => {
-  if (!ctx.session){
-    return ctx.replyWithHTML("Session ended");
-  }
     if (ctx.session.name && (CONSTANTS.SKILLARR.includes(ctx.message.text) || ctx.session.skillTemp) && !ctx.session.skill) {
         console.log(ctx.message.text);
       let skillArrDb = (ctx.message.text).split(CONSTANTS.COMMASTRING);
@@ -80,7 +78,6 @@ bot.on("text", ctx => {
         //dbsaveapicall
         dbSaveApiCall(ctx,skillArrDb)
         }
-        //ctx.session=null;
         return;
     }
 
@@ -222,3 +219,15 @@ function dbSaveApiCall(ctx,skillArrDb){
           return resMsg;
           }); 
 }
+
+function resetSession(ctx){
+    ctx.session.aadhar=null;
+    ctx.session.skill=null;
+    ctx.session.name=null;
+    ctx.session.pincode=null;
+    ctx.session.gender=null;
+    ctx.session.address=null;
+    ctx.session.skillTemp=null;
+    ctx.session.address=null;
+    ctx.session.language=null;
+  }
