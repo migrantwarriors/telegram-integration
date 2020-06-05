@@ -1,41 +1,64 @@
-// app.js
-// where your node app starts
-
-// we've started you off with Express (https://expressjs.com/)
-// but feel free to use whatever libraries or frameworks you'd like through `package.json`.
 const express = require("express");
 const app = express();
 const dotenv = require('dotenv');
 dotenv.config();
-const CONSTANTS = require('./const.js');
+let CONSTANTS = require('./messages_en.js');
 const session = require("telegraf/session");
 const Telegraf = require("telegraf");
 const bot = new Telegraf(process.env.AUTH_TOKEN);
-const skillArr = ["Carpentor", "Mason", "Tailor", "Beautician", "Electrician", "Construction Labour", "Fitter", "Painter", "Plumber"];
+const genderMap=new Map();
+genderMap.set("M", "Male");
+genderMap.set("F", "Female");
+genderMap.set("T","Transgender");
 const fetch = require('node-fetch');
 const Markup = require('telegraf/markup');
-const request = require('request'); 
+const request = require('request');
+const translate = require('@vitalets/google-translate-api');
 
 bot.use(session());
 bot.use(Telegraf.log());
 
 bot.start(ctx => {
+    ctx.replyWithHTML(CONSTANTS.LANGUAGECHOOSEMSG, Markup.keyboard([["हिन्दी", "English"]]).oneTime().resize().extra());
+});
+
+bot.hears("हिन्दी", ctx => {
+    ctx.session.language = "hi";
+    CONSTANTS = require('./messages_hi.js');
     ctx.replyWithHTML(CONSTANTS.ENTERDETAILS);
+});
+bot.hears("English", ctx => {
+    ctx.session.language = "en";
+    CONSTANTS = require('./messages_en.js');
+    ctx.replyWithHTML(CONSTANTS.ENTERDETAILS);
+});
+
+bot.hears("मल्टी-स्किल/अन्य", ctx => {
+    ctx.session.skillTemp = ctx.message.text;
+    ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILLMSG);
 });
 
 bot.hears("Multi-Skill/Others", ctx => {
     ctx.session.skillTemp = ctx.message.text;
-    ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILL);
+    ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILLMSG);
 });
-
-bot.on("photo", ctx => {
+//For OCR POC
+/*bot.on("photo", ctx => {
     console.log("Image file_id:" + ctx.message.photo[0].file_id);
     ctx.replyWithHTML("Testing Image");
-});
+});*/
 
 bot.on("text", ctx => {
-    if (ctx.session.name && (skillArr.includes(ctx.message.text) || ctx.session.skillTemp) && !ctx.session.skill) {
+  if (!ctx.session){
+    return ctx.replyWithHTML("Session ended");
+  }
+    if (ctx.session.name && (CONSTANTS.SKILLARR.includes(ctx.message.text) || ctx.session.skillTemp) && !ctx.session.skill) {
         console.log(ctx.message.text);
+      let skillArrDb = (ctx.message.text).split(CONSTANTS.COMMASTRING);
+      if(skillArrDb.length>3){
+        return ctx.replyWithHTML(CONSTANTS.MAXSKILLSERRORMSG);
+      }
+        
         ctx.session.skill = ctx.message.text;
         console.log(
             "Through session: " +
@@ -45,36 +68,19 @@ bot.on("text", ctx => {
             " " +
             ctx.session.pincode +
             " " +
-            ctx.session.skill
+            ctx.session.skill +
+            " " +
+            ctx.session.gender
         );
-        //dbsaveapicall//setflag
-        let skillArrDb = (ctx.session.skill).split(CONSTANTS.COMMASTRING);
-        let dbApiUrl = CONSTANTS.DBAPICALL;
-
-        let dbApiBody = {
-            "Name": ctx.session.name,
-            "AadharNumber": Number(ctx.session.aadhar),
-            "Phone": Number(ctx.session.phone),
-            "Address": ctx.session.address,
-            "Pincode": Number(ctx.session.pincode),
-            "Skill": skillArrDb
-        };
-
-        request.post(CONSTANTS.DBAPICALL, {
-            json: dbApiBody
-          }, (error, res, body) => {
-            if (error) {
-              console.error(error);
-              return ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
-            }
-            console.log("DB save response" +body);
-            if (body) {
-                return ctx.replyWithHTML(CONSTANTS.SUCCESSMESSAGE);
-            } else {
-                return ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
-            }
-          }); 
-
+        
+        if(ctx.session.language ==="hi"){
+          //google translator api call and db save api call
+          runTranslatorAndDBSaveApi(ctx);
+        }else{
+        //dbsaveapicall
+        dbSaveApiCall(ctx,skillArrDb)
+        }
+        //ctx.session=null;
         return;
     }
 
@@ -84,16 +90,8 @@ bot.on("text", ctx => {
 
     let errMsg = checkForValidations(ctx);
     console.log(ctx.message.text);
-    if (errMsg == CONSTANTS.EMPTYSTRING) {
-        return ctx.replyWithHTML(CONSTANTS.ENTERDETAILSSUCCESS,
-            Markup.keyboard([
-                ["Carpentor", "Mason", "Plumber"],
-                ["Tailor", "Beautician", "Painter"],
-                ["Electrician", "Fitter", "Construction Labour"],
-                ["Multi-Skill/Others"]
-            ])
-                .oneTime()
-                .resize().extra());
+    if (errMsg === CONSTANTS.EMPTYSTRING) {
+        return ctx.replyWithHTML(CONSTANTS.ENTERDETAILSSUCCESS,Markup.keyboard(CONSTANTS.SKILLKEYBOARDARRAY).oneTime().resize().extra());
     } else {
         return ctx.replyWithHTML(errMsg + CONSTANTS.ENTERDETAILSFAILURE);
     }
@@ -110,20 +108,21 @@ function checkForValidations(ctx) {
     let errText = CONSTANTS.EMPTYSTRING;
     let userText = ctx.message.text;
     if (typeof userText !== "undefined" || userText !== undefined) {
-        var arr = userText.split(CONSTANTS.COMMASTRING);
+        let arr = userText.split(CONSTANTS.COMMASTRING);
 
-        if (arr.length < 5) {
+        if (arr.length < 6) {
             errText += CONSTANTS.ENTERDETAILSFAILUREMSG;
             console.log(errText);
         } else {
             let name = arr[0].trim();
             let phone = arr[1].trim();
             let aadhar = arr[2].trim();
-            let pincode = arr[3].trim();
-            let address = userText.substring(nthIndex(userText, ",", 4) + 1).trim();
+            let gender = arr[3].trim();
+            let pincode = arr[4].trim();
+            let address = userText.substring(nthIndex(userText, ",", 5) + 1).trim();
             console.log("Address: " + address);
             
-            if (!name.match(/^[A-Za-z ]+$/)) {
+            if (!name.match(CONSTANTS.NAMEREGEX)) {
                 errText += CONSTANTS.NAMEERRORMSG;
             }
             
@@ -132,48 +131,32 @@ function checkForValidations(ctx) {
             }
             
             if (!aadhar.match(/^\d{12}$/)) {
-                errText += CONSTANTS.AADHARERRORMSG1;
-            } else {
-                //aadharapicall
-                
-                let aadharApiUrl = `https://aadhaarnumber-verify.p.rapidapi.com/Uidverify?uidnumber=${aadhar}&clientid=111&method=uidverify&txn_id=123456`;
-
-                let headers = {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "X-RapidAPI-Host": "aadhaarnumber-verify.p.rapidapi.com",
-                    "X-RapidAPI-Key":
-                        "f1419a9897msh78e29cfb99f2667p1dbe25jsnda2709e35f7a",
-                    accept: "application/json"
-                };
-
-                const getData = async (url) => {
-                    try {
-                        const response = await fetch(url, { method: 'POST', headers: headers });
-                        const json = await response.json();
-                        console.log("JSON: " + JSON.stringify(json));
-                    } catch (error) {
-                        console.log(error);
-                    }
-                };
-
-                getData(aadharApiUrl);
-                //aadharapicallend
+                errText += CONSTANTS.AADHARERRORMSG;
+            }
+          
+            if (!gender.match(CONSTANTS.GENDERREGEX)) {
+                errText += CONSTANTS.GENDERERRORMSG;
             }
             
             if (!pincode.match(/^\d{6}$/)) {
                 errText += CONSTANTS.PINCODEERRORMSG;
             }
             
-            if (!address.match(/^[A-Za-z \d]+$/)) {
+            if (!address.match(CONSTANTS.ADDRESSREGEX)) {
                 errText += CONSTANTS.ADDRESSERRORMSG;
             }
             
-            if (errText == CONSTANTS.EMPTYSTRING) {
+            if (errText === CONSTANTS.EMPTYSTRING) {
                 ctx.session.name = name;
                 ctx.session.phone = phone;
                 ctx.session.aadhar = aadhar;
                 ctx.session.pincode = pincode;
                 ctx.session.address = address;
+                if(ctx.session.language==="hi"){
+                ctx.session.gender = gender;
+                }else{
+                ctx.session.gender = genderMap.get(gender.toUpperCase());
+                }
             }
         }
     }
@@ -187,4 +170,55 @@ function nthIndex(str, pat, n) {
         if (i < 0) break;
     }
     return i;
+}
+
+async function runTranslatorAndDBSaveApi(ctx) {
+      ctx.session.name=await translate(ctx.session.name, { client: 'gtx', to: 'en' }).then(res => res.text);
+      ctx.session.address=await translate(ctx.session.address, { client: 'gtx', to: 'en' }).then(res => res.text);
+      ctx.session.skill= await translate(ctx.session.skill, { client: 'gtx', to: 'en' }).then(res => res.text);
+      console.log("RunTask completed "+ctx.session.name+ctx.session.address+ctx.session.skill);
+      let skillArrDbHi = (ctx.session.skill).split(CONSTANTS.COMMASTRING);
+      dbSaveApiCall(ctx,skillArrDbHi);
+}
+
+function dbSaveApiCall(ctx,skillArrDb){
+  let dbApiBody = {
+            "Name": ctx.session.name,
+            "AadharNumber": Number(ctx.session.aadhar),
+            "Phone": Number(ctx.session.phone),
+            "Address": ctx.session.address,
+            "Pincode": Number(ctx.session.pincode),
+            "Gender": ctx.session.gender,
+            "Mode": "Telegram",
+            "Skill": skillArrDb
+        };
+    console.log("Going to hit DB : "+ctx.session.name+" "+ctx.session.aadhar+" "+ctx.session.address+" "+ctx.session.skill);
+  
+        request.post(CONSTANTS.DBAPICALL, {
+            json: dbApiBody
+          }, (error, res, body) => {
+            if (error) {
+              console.error(error);
+              return ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
+            }
+            console.log("DB save response code: " +body.status);
+          let resMsg= CONSTANTS.EMPTYSTRING;
+          switch (body.status) {
+            case 401:
+             resMsg= ctx.replyWithHTML(CONSTANTS.SUCCESSMESSAGE);
+              break;
+            case 402:
+              resMsg= ctx.replyWithHTML(CONSTANTS.AADHARPPENDINGMESSAGE);
+              break;
+              case 403:
+              resMsg= ctx.replyWithHTML(CONSTANTS.ALREADYEXISTMESSAGE);
+              break;
+              case 404:
+              resMsg= ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
+              break;
+            default:
+              resMsg= ctx.replyWithHTML(CONSTANTS.FAILUREDBMESSAGE);
+          }
+          return resMsg;
+          }); 
 }
