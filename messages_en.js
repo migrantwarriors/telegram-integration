@@ -14,7 +14,7 @@ module.exports = Object.freeze({
     PHONEERRORMSG: '\n<b>Phone number</b> is invalid. It should be of 10 digit and all should be numbers.',
     AADHARERRORMSG: '\n<b>Aadhar number</b> is invalid. It should be of 12 digit and all should be numbers.',
     PINCODEERRORMSG: '\n<b>Pincode</b> is invalid. It should be of 6 digit and all should be numbers.',
-    ADDRESSERRORMSG: '\n<b>Address</b> iis invalid. It should not include special characters other than – and /.',
+    ADDRESSERRORMSG: '\n<b>Address</b> is invalid. It should not include special characters other than – and /.',
     EMPTYSTRING: '',
     COMMASTRING: ',',
     GENDERERRORMSG: '\n<b>Gender</b> is invalid. It should be M or F or T.',
