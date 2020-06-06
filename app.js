@@ -51,11 +51,52 @@ bot.hears("Multi-Skill/Others", ctx => {
     ctx.session.skillTemp = ctx.message.text;
     return ctx.replyWithHTML(CONSTANTS.MULTIOTHERSSKILLMSG);
 });
-//For OCR POC
-/*bot.on("photo", ctx => {
-    console.log("Image file_id:" + ctx.message.photo[0].file_id);
-    ctx.replyWithHTML("Testing Image");
-});*/
+//For OCR
+bot.on("document", ctx => {
+    let aadharNumber="";
+    let fileId = ctx.message.document.file_id;
+    let fileName = ctx.message.document.file_name;
+    let fileSize = ctx.message.document.file_size;
+  if(fileSize > 1000000){
+    return ctx.replyWithHTML(CONSTANTS.FILELENGTHERRORMSG);
+  }
+  let fileType = fileName.substring(fileName.lastIndexOf('.')+1);
+  let fileTypeArray= ['pdf', 'gif', 'png', 'jpg', 'tif', 'bmp'];
+  if(!fileTypeArray.includes(fileType.toLowerCase())){
+    return ctx.replyWithHTML(CONSTANTS.FILETYPEERRORMSG);
+  }
+    bot.telegram.getFile(fileId).then(res => {
+    let file_path = res.file_path;
+    //OCR api call  
+      let ocrApiBody = {
+            "apikey": '5272f245a388957',
+            "language": 'eng',
+            "filetype": fileType,
+            "url": `https://api.telegram.org/file/bot${process.env.AUTH_TOKEN}/${file_path}`
+        };
+    request.post("https://api.ocr.space/parse/image", {
+            formData: ocrApiBody
+          }, (error, resp, body) => {
+            if (error) {
+              console.error(error);
+              return ctx.replyWithHTML("Error");
+            }
+            let ocrDataArr= JSON.parse(body).ParsedResults[0].ParsedText.split("\r\n");
+            let includeAadhar = ocrDataArr.findIndex(data => data.includes('Your Aadhaar No'));
+            if(includeAadhar !== -1){
+              aadharNumber = ocrDataArr[includeAadhar+1];
+              console.log("aadharNumber: "+aadharNumber);
+              return ctx.replyWithHTML(CONSTANTS.OCRSUCCESSMESSAGE1+aadharNumber+CONSTANTS.OCRSUCCESSMESSAGE2);
+            }else{
+              return ctx.replyWithHTML(CONSTANTS.OCRERRORMESSAGE);
+            }
+    //ocr call end
+    });    
+});
+    console.log("AadharNumber: "+aadharNumber);
+    return ctx.reply("");
+});
+
 
 bot.on("text", ctx => {
     if (ctx.session.name && (CONSTANTS.SKILLARR.includes(ctx.message.text) || ctx.session.skillTemp) && !ctx.session.skill) {

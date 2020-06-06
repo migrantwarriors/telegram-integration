@@ -1,5 +1,5 @@
 module.exports = Object.freeze({
-    ENTERDETAILS: 'Please provide your details for registration in given format - <b>name, phone number, aadhar number, gender, pincode, address</b>. \n\nFor eg. <b>garishma nagpal, 9999999999, 123456789012, F, 201010, Indirapuram Ghaziabad</b>.',
+    ENTERDETAILS: 'Please upload your <b>aadhar card image.</b> \n\n <b>OR</b> \n\nPlease provide your details for registration in given format - <b>name, phone number, aadhar number, gender, pincode, address</b>. \n\nFor eg. <b>garishma nagpal, 9999999999, 123456789012, F, 201010, Indirapuram Ghaziabad</b>.',
     MULTIOTHERSSKILLMSG: 'Please provide your skill. If multiple, then provide them comma separated. Maximum 3 allowed.',
     DBAPICALL: 'http://localhost/saviours/api/migrants/',
     SUCCESSMESSAGE: 'Thank You for providing your details. We will contact you shortly. You may check <b>http://migrantwarriors.com</b> for more updates.',
@@ -39,5 +39,10 @@ module.exports = Object.freeze({
                 ["Scavenging", "Tobacco processing","Stone crushing"]
             ],
     EMPTYSKILLSERRORMSG: 'Skills should not be empty.',
-    WRONGPINCODEMESSAGE: 'There is an error in saving the details. Pincode entered is invalid. Please provide your details again by clicking /start.'
+    WRONGPINCODEMESSAGE: 'There is an error in saving the details. Pincode entered is invalid. Please provide your details again by clicking /start.',
+    FILELENGTHERRORMSG:'Image uploaded is of size greater than 1 MB. Please try again with file less than 1 MB.',
+    OCRSUCCESSMESSAGE1:'We have got your aadhar details : <b>',
+    OCRSUCCESSMESSAGE2:'</b>. We will contact you shortly.',
+    FILETYPEERRORMSG: 'File Type not supported. Supported file types are : PDF, GIF, PNG, JPG, TIF, BMP. Please upload again.',
+    OCRERRORMESSAGE: 'Invalid Aadhar document. Please upload the correct one.'
 });
