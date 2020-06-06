@@ -1,7 +1,7 @@
 module.exports = Object.freeze({
     ENTERDETAILS: 'Please upload your <b>aadhar card image.</b> \n\n <b>OR</b> \n\nPlease provide your details for registration in given format - <b>name, phone number, aadhar number, gender, pincode, address</b>. \n\nFor eg. <b>garishma nagpal, 9999999999, 123456789012, F, 201010, Indirapuram Ghaziabad</b>.',
     MULTIOTHERSSKILLMSG: 'Please provide your skill. If multiple, then provide them comma separated. Maximum 3 allowed.',
-    DBAPICALL: 'http://localhost/saviours/api/migrants/',
+    DBAPICALL: 'http://localhost:8009/api/migrants/',
     SUCCESSMESSAGE: 'Thank You for providing your details. We will contact you shortly. You may check <b>www.migrantsaviours.com:8009</b> for more updates.',
     FAILUREDBMESSAGE: 'There is some error in saving the details. Please try again by clicking /start after 5-10 minutes.',
     ALREADYEXISTMESSAGE:'Thank you for providing the details. Your details already exist in the system. We will contact you shortly.',
