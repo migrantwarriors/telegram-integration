@@ -98,8 +98,7 @@ bot.on("document", ctx => {
     //ocr call end
     });    
 });
-    console.log("AadharNumber: "+aadharNumber);
-    return ctx.reply("");
+	return ctx.reply("");
 });
 
 bot.on("photo", ctx => {
@@ -144,15 +143,13 @@ bot.on("photo", ctx => {
   //ocr call end
 	});
 });
-	console.log("AadharNumber: "+aadharNumber);
-  return ctx.reply("");
+	return ctx.reply("");
   });
 
 
 bot.on("text", ctx => {
     setLanguageConstant(false, ctx);
     if (ctx.session.name && (ctx.session.CONSTANTS.SKILLARR.includes(ctx.message.text) || ctx.session.skillTemp) && !ctx.session.skill) {
-        console.log(ctx.message.text);
       let skillArrDb = (ctx.message.text).split(ctx.session.CONSTANTS.COMMASTRING);
       if(skillArrDb.length>3){
         return ctx.replyWithHTML(ctx.session.CONSTANTS.MAXSKILLSERRORMSG);
@@ -189,7 +186,6 @@ bot.on("text", ctx => {
     }
 
     let errMsg = checkForValidations(ctx);
-    console.log(ctx.message.text);
     if (errMsg === ctx.session.CONSTANTS.EMPTYSTRING) {
         return ctx.replyWithHTML(ctx.session.CONSTANTS.ENTERDETAILSSUCCESS,Markup.keyboard(ctx.session.CONSTANTS.SKILLKEYBOARDARRAY).oneTime().resize().extra());
     } else {
@@ -212,7 +208,6 @@ function checkForValidations(ctx) {
 
         if (arr.length < 6) {
             errText += ctx.session.CONSTANTS.ENTERDETAILSFAILUREMSG;
-            console.log(errText);
         } else {
             let name = arr[0].trim();
             let phone = arr[1].trim();
@@ -220,7 +215,6 @@ function checkForValidations(ctx) {
             let gender = arr[3].trim();
             let pincode = arr[4].trim();
             let address = userText.substring(nthIndex(userText, ",", 5) + 1).trim();
-            console.log("Address: " + address);
             
             if (!name.match(ctx.session.CONSTANTS.NAMEREGEX)) {
                 errText += ctx.session.CONSTANTS.NAMEERRORMSG;
@@ -276,7 +270,6 @@ async function runTranslatorAndDBSaveApi(ctx) {
       ctx.session.name=await translate(ctx.session.name, { client: 'gtx', to: 'en' }).then(res => res.text);
       ctx.session.address=await translate(ctx.session.address, { client: 'gtx', to: 'en' }).then(res => res.text);
       ctx.session.skill= await translate(ctx.session.skill, { client: 'gtx', to: 'en' }).then(res => res.text);
-      console.log("RunTask completed "+ctx.session.name+ctx.session.address+ctx.session.skill);
       let skillArrDbHi = (ctx.session.skill).split(ctx.session.CONSTANTS.COMMASTRING);
       dbSaveApiCall(ctx,skillArrDbHi);
 }
